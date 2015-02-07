@@ -9,58 +9,21 @@ class Cell
     @game.cells << self
   end
 
+  def coords
+    [x,y]
+  end
+
   def neighbours
-    [north, north_east,east, south_east, south, south_west, west, north_west].select do |neighbour|
-      neighbour == true
+    neighbour_coords & game.cells.collect(&:coords)
+  end
+
+  def neighbour_coords
+    x_coords = [x-1, x, x+1]
+    y_coords = [y-1, y, y+1]
+    
+    x_coords.product(y_coords).reject do |co| 
+      co == self.coords
     end
-  end
-
-  def north
-    game.cells.select do |cell|
-      cell.x == self.x && cell.y == self.y+1
-    end.any?
-  end
-
-  def north_east
-    game.cells.select do |cell|
-      cell.x == self.x+1 && cell.y == self.y+1
-    end.any?
-  end
-
-  def east
-    game.cells.select do |cell|
-      cell.x == self.x+1 && cell.y == self.y
-    end.any?
-  end
-
-  def south_east
-    game.cells.select do |cell|
-      cell.x == self.x+1 && cell.y == self.y-1
-    end.any?
-  end
-
-  def south
-    game.cells.select do |cell|
-      cell.x == self.x && cell.y == self.y-1
-    end.any?
-  end
-
-  def south_west
-    game.cells.select do |cell|
-      cell.x == self.x-1 && cell.y == self.y-1
-    end.any?
-  end
-
-  def west
-    game.cells.select do |cell|
-      cell.x == self.x-1 && cell.y == self.y
-    end.any?
-  end
-
-  def north_west
-    game.cells.select do |cell|
-      cell.x == self.x-1 && cell.y == self.y+1
-    end.any?
   end
 
   class << self
@@ -113,44 +76,11 @@ describe 'game of life' do
     end
 
     context 'identifying neighbours' do
-      it 'to the north' do
-        Cell.spawn_at(1,3)
-        expect(subject.neighbours.count).to eq 1
-      end
-
-      it 'to the north-east' do
-        Cell.spawn_at(2,3)
-        expect(subject.neighbours.count).to eq 1
-      end
-
-      it 'to the east' do
-        Cell.spawn_at(2,2)
-        expect(subject.neighbours.count).to eq 1
-      end
-
-      it 'to the south-east' do
-        Cell.spawn_at(2,1)
-        expect(subject.neighbours.count).to eq 1
-      end
-
-      it 'to the south' do
-        Cell.spawn_at(1,1)
-        expect(subject.neighbours.count).to eq 1
-      end
-
-      it 'to the south_west' do
-        Cell.spawn_at(0,1)
-        expect(subject.neighbours.count).to eq 1
-      end
-
-      it 'to the west' do
-        Cell.spawn_at(0,2)
-        expect(subject.neighbours.count).to eq 1
-      end
-
-      it 'to the north_west' do
-        Cell.spawn_at(0,3)
-        expect(subject.neighbours.count).to eq 1
+      [[0, 1], [0, 2], [0, 3], [1, 1], [1, 3], [2, 1], [2,2], [2, 3]].each do |coord|
+        it "can identify its neighbour at #{coord}" do
+          Cell.spawn_at(coord[0], coord[1])
+          expect(subject.neighbours.count).to eq 1
+        end
       end
     end
   end
