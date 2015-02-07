@@ -18,6 +18,14 @@ class Cell
     state == 'alive'
   end
 
+  def dies
+    @state = 'dead'
+  end
+
+  def lives
+    @state = 'alive'
+  end
+
   def neighbours
     neighbour_coords & game.cells.collect(&:coords)
   end
@@ -51,9 +59,8 @@ class Game
     return if cells.empty?
 
     cells.each do |cell|
-      cell.state = 'dead' if cell.neighbours.count < 2
-      cell.state = 'dead' if cell.neighbours.count > 3
-      cell.state = 'alive' if cell.neighbours.count == 3
+      cell.dies if !(2..3).include?(cell.neighbours.count)
+      cell.lives if cell.neighbours.count == 3
     end
   end
 
@@ -61,6 +68,12 @@ class Game
     def setup
       Cell.game = self.new
     end
+  end
+end
+
+def spawn_cells(coords=[])
+  coords.flatten.each_slice(2).to_a.each do |co|
+    Cell.spawn_at(co[0],co[1])
   end
 end
 
@@ -99,7 +112,7 @@ describe 'game of life' do
     context 'identifying neighbours' do
       [[0, 1], [0, 2], [0, 3], [1, 1], [1, 3], [2, 1], [2,2], [2, 3]].each do |coord|
         it "can identify its neighbour at #{coord}" do
-          Cell.spawn_at(coord[0], coord[1])
+          spawn_cells(coord)
           expect(cell.neighbours.count).to eq 1
         end
       end
@@ -107,25 +120,21 @@ describe 'game of life' do
   end
 
   it 'rule 1: Any live cell with fewer than two live neighbours dies' do
-    Cell.spawn_at(2,2)
+    spawn_cells([2,2])
     game.evolve
 
     expect(cell.state).to eq 'dead'
   end
 
   it 'rule 2: Any live cell with two or three live neighbours lives on to the next generation' do
-    Cell.spawn_at(2,2)
-    Cell.spawn_at(2,3)
+    spawn_cells([[2,2],[2,3]])
     game.evolve
 
     expect(cell.state).to eq 'alive'
   end
 
   it 'rule 3: Any live cell with more than three live neighbours dies, as if by overcrowding' do
-    Cell.spawn_at(2,2)
-    Cell.spawn_at(2,3)
-    Cell.spawn_at(2,1)
-    Cell.spawn_at(1,1)
+    spawn_cells([[1,1], [2,1], [2,2], [2,3]])
     game.evolve
 
     expect(cell.state).to eq 'dead'
@@ -133,9 +142,7 @@ describe 'game of life' do
 
   it 'rule 4: Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction' do
     cell.state = 'dead'
-    Cell.spawn_at(2,2)
-    Cell.spawn_at(2,3)
-    Cell.spawn_at(2,1)
+    spawn_cells([[1,1], [2,1], [2,2]])
     game.evolve
 
     expect(cell.state).to eq 'alive'
