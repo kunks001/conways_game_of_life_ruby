@@ -1,16 +1,21 @@
 class Cell
-  attr_accessor :x, :y, :game
+  attr_accessor :x, :y, :game, :state
 
   def initialize(game,x,y)
     @x=x
     @y=y
     @game=game
+    @state='alive'
 
     @game.cells << self
   end
 
   def coords
     [x,y]
+  end
+
+  def alive?
+    state == 'alive'
   end
 
   def neighbours
@@ -42,6 +47,16 @@ class Game
     @cells = []
   end
 
+  def evolve
+    return if cells.empty?
+
+    cells.each do |cell|
+      cell.state = 'dead' if cell.neighbours.count < 2
+      cell.state = 'dead' if cell.neighbours.count > 3
+      cell.state = 'alive' if cell.neighbours.count == 3
+    end
+  end
+
   class << self
     def setup
       Cell.game = self.new
@@ -50,41 +65,79 @@ class Game
 end
 
 describe 'game of life' do
+  let(:cell){ Cell.spawn_at(1,2) }
+  let(:game){ cell.game }
+
   before{ Game.setup }
 
-  describe 'Game' do
+  describe Game do
     subject{ Game.new }
+
     it 'contains cells' do
       expect(subject.cells.count).to eq 0
     end
   end
 
   describe Cell do
-    subject{ Cell.spawn_at(1,2) }
-
     it 'belongs to a game' do
       expect(Cell.game).to be_a Game
     end
 
+    it 'can be alive or not' do
+      expect(cell.alive?).to eq true
+    end
+
     it 'has a position in the game' do
-      expect(subject.x).to eq 1
-      expect(subject.y).to eq 2
+      expect(cell.x).to eq 1
+      expect(cell.y).to eq 2
     end
 
     it 'can count its neighbours' do
-      expect(subject.neighbours.count).to eq 0
+      expect(cell.neighbours.count).to eq 0
     end
 
     context 'identifying neighbours' do
       [[0, 1], [0, 2], [0, 3], [1, 1], [1, 3], [2, 1], [2,2], [2, 3]].each do |coord|
         it "can identify its neighbour at #{coord}" do
           Cell.spawn_at(coord[0], coord[1])
-          expect(subject.neighbours.count).to eq 1
+          expect(cell.neighbours.count).to eq 1
         end
       end
     end
   end
 
   it 'rule 1: Any live cell with fewer than two live neighbours dies' do
+    Cell.spawn_at(2,2)
+    game.evolve
+
+    expect(cell.state).to eq 'dead'
+  end
+
+  it 'rule 2: Any live cell with two or three live neighbours lives on to the next generation' do
+    Cell.spawn_at(2,2)
+    Cell.spawn_at(2,3)
+    game.evolve
+
+    expect(cell.state).to eq 'alive'
+  end
+
+  it 'rule 3: Any live cell with more than three live neighbours dies, as if by overcrowding' do
+    Cell.spawn_at(2,2)
+    Cell.spawn_at(2,3)
+    Cell.spawn_at(2,1)
+    Cell.spawn_at(1,1)
+    game.evolve
+
+    expect(cell.state).to eq 'dead'
+  end
+
+  it 'rule 4: Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction' do
+    cell.state = 'dead'
+    Cell.spawn_at(2,2)
+    Cell.spawn_at(2,3)
+    Cell.spawn_at(2,1)
+    game.evolve
+
+    expect(cell.state).to eq 'alive'
   end
 end
