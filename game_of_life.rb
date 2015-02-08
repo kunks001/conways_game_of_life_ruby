@@ -18,12 +18,12 @@ class Cell
     state == 'alive'
   end
 
-  def dies
-    @state = 'dead'
+  def die
+    @state = 'dead'; true if ![2,3].include?(neighbours.count)
   end
 
-  def lives
-    @state = 'alive'
+  def live
+    @state = 'alive'; true if neighbours.count == 3
   end
 
   def neighbours
@@ -40,7 +40,12 @@ class Cell
   end
 
   def out_of_bounds(x,y)
-    (x > game.x_bound || x < 0) || (y > game.y_bound || y < 0)
+    return true if x > game.x_bound || x < 0
+    y > game.y_bound || y < 0
+  end
+
+  def evolve
+    self.die || self.live
   end
 
   class << self
@@ -63,11 +68,7 @@ class Game
 
   def evolve
     return if cells.empty?
-
-    cells.each do |cell|
-      cell.dies if !(2..3).include?(cell.neighbours.count)
-      cell.lives if cell.neighbours.count == 3
-    end
+    cells.each { |cell| cell.evolve }
   end
 
   class << self
