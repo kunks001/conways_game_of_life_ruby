@@ -1,16 +1,16 @@
 class Cell
   attr_accessor :x, :y, :game, :state
 
-  def initialize(game,x,y)
+  def initialize(x,y,state='alive')
     @x=x
     @y=y
-    @game=game
-    @state='alive'
+    @game=self.class.game
+    @state=state
 
     @game.cells << self unless out_of_bounds(x,y)
   end 
 
-  def coords
+  def coordinates
     [x,y]
   end
 
@@ -27,7 +27,7 @@ class Cell
   end
 
   def neighbours
-    neighbour_coords & game.cells.collect(&:coords)
+    neighbour_coords & game.cells.collect(&:coordinates)
   end
 
   def neighbour_coords
@@ -35,7 +35,7 @@ class Cell
     y_coords = [y-1, y, y+1]
     
     x_coords.product(y_coords).reject do |co| 
-      co == self.coords || out_of_bounds(co[0], co[1])
+      co == self.coordinates || out_of_bounds(co[0], co[1])
     end
   end
 
@@ -52,7 +52,7 @@ class Cell
     attr_accessor :game
 
     def spawn_at(x,y)
-      self.new(game,x,y)
+      self.new(x,y)
     end
   end
 end
@@ -64,6 +64,23 @@ class Game
     @cells = []
     @x_bound = x_bound
     @y_bound = y_bound
+  end
+
+  def distribute_cells
+    x_range = (0..x_bound).to_a
+    y_range = (0..y_bound).to_a
+
+    x_range.product(y_range).each do |coordinates|
+      Cell.new(coordinates[0], coordinates[1], 'dead')
+    end
+  end
+
+  def seed(seeds)
+    distribute_cells
+
+    cells.each do |cell|
+      cell.live if seeds.include?(cell.coordinates)
+    end
   end
 
   def evolve
